@@ -1,0 +1,105 @@
+# ==============================================================================
+# Entorno Virtual y Dependencias
+# ==============================================================================
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ==============================================================================
+# Python Bytecode, Caches y Builds
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==============================================================================
+# Resultados Experimentales, Datos Pesados y Caché
+# ==============================================================================
+resultados/
+results/
+.miclustering_cache/
+*.npy
+*.npz
+*.parquet
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# Bases de datos SQLite de Optuna / Storage
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================================================================
+# Logs y Archivos de Ejecución
+# ==============================================================================
+execution*
+log_exec*
+*.log
+*.out
+
+# Documentación interna / walkthroughs
+walkthroughs/
+
+# ==============================================================================
+# Jupyter Notebooks
+# ==============================================================================
+.ipynb_checkpoints
+*-checkpoint.ipynb
+*/.ipynb_checkpoints/*
+
+# ==============================================================================
+# Testing & Type Checking
+# ==============================================================================
+.pytest_cache/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.mypy_cache/
+.pytype/
+.ruff_cache/
+
+# ==============================================================================
+# IDEs, Editores y Sistema Operativo
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~

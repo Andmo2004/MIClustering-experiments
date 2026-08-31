@@ -1,0 +1,31 @@
+# ==============================================================================
+# Dependencias Principales - Benchmark MIL & MIClustering
+# ==============================================================================
+
+# Core Data & Numerics
+numpy>=1.22.4
+scipy>=1.10.0
+scikit-learn>=1.2.0
+pandas>=2.0.0
+joblib>=1.2.0
+liac-arff>=2.5.0
+
+# Experimentation & Bayesian Optimization
+optuna>=3.0.0
+tqdm>=4.65.0
+
+# Visualization & Reporting
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tabulate>=0.9.0
+
+# Hardware Acceleration & Optimal Transport (GPU / CUDA / MPS)
+torch>=2.0.0
+POT>=0.9.0
+
+# Jupyter Notebook Environment
+ipykernel>=6.0.0
+ipywidgets>=8.0.0
+
+# Instalación del paquete local MIClustering
+miclustering @ git+https://github.com/Andmo2004/MIClustering.git
