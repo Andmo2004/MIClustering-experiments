@@ -36,10 +36,15 @@ MANIFEST
 # ==============================================================================
 # Resultados Experimentales, Datos Pesados y Caché
 # ==============================================================================
-resultados/
+# Ignorar toda la carpeta resultados excepto las matrices de distancias precomputadas
+resultados/*
+!resultados/distancias/
+!resultados/distancias/**
+
 results/
 .miclustering_cache/
-*.npy
+
+# Archivos pesados/binarios excepto las matrices de distancias
 *.npz
 *.parquet
 *.h5
