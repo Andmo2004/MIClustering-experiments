@@ -45,9 +45,9 @@ from time_estimator import estimate_fase0, print_phase_header
 logger = setup_logging("fase0")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # 1. Verificar y documentar versiones
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def document_versions() -> Dict[str, str]:
     """Recoge las versiones de todas las dependencias relevantes."""
@@ -104,9 +104,9 @@ def document_versions() -> Dict[str, str]:
     return versions
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # 2. Checksums SHA-256 de datasets
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def compute_checksums() -> Dict[str, str]:
     """Calcula SHA-256 de cada archivo .arff para trazabilidad."""
@@ -129,9 +129,9 @@ def compute_checksums() -> Dict[str, str]:
     return checksums
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # 3. Documentar el diseño experimental
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def document_design() -> Dict:
     """Genera un documento JSON con todas las decisiones de diseño."""
@@ -186,9 +186,9 @@ def document_design() -> Dict:
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Pipeline principal
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_fase0():
     """Ejecuta la Fase 0 completa."""

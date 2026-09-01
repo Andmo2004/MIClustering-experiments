@@ -58,9 +58,9 @@ logger = setup_logging("analisis_datasets")
 ANALYSIS_DIR = RESULTS_ROOT / "analisis_datasets"
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Análisis de estructura de bolsas
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def analyze_bag_structure(dataset: MIData, dataset_name: str) -> Dict[str, Any]:
     """Analiza la estructura de un dataset MIL: bolsas, instancias, clases.
@@ -112,9 +112,9 @@ def analyze_bag_structure(dataset: MIData, dataset_name: str) -> Dict[str, Any]:
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Análisis de distribución de distancias
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def analyze_distance_distribution(
     dist_matrix: np.ndarray,
@@ -168,9 +168,9 @@ def analyze_distance_distribution(
     return result
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Pipeline principal
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_analysis(
     dataset_names: Optional[List[str]] = None,
@@ -366,9 +366,9 @@ def run_analysis(
     print("═" * 75 + "\n")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def main():
     parser = argparse.ArgumentParser(

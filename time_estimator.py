@@ -9,9 +9,9 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Tiempos de referencia empíricos (segundos por cálculo de matriz en hardware local)
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 BENCHMARK_MATRIX_SECONDS: Dict[Tuple[str, str, str], float] = {
     # (dataset, scaler, distance): segundos
@@ -149,9 +149,9 @@ BENCHMARK_MATRIX_SECONDS: Dict[Tuple[str, str, str], float] = {
 DEFAULT_MATRIX_SECONDS = 30.0
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Formateo de tiempos para lectura humana
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def format_duration(seconds: float) -> str:
     """Convierte segundos a una cadena legible (ej: '< 1 segundo', '~45 s', '~12 min 30 s', '~2 h 06 min')."""
@@ -193,9 +193,9 @@ def format_duration_range(min_seconds: float, max_seconds: float) -> str:
     return f"{format_duration(min_seconds)} – {format_duration(max_seconds)}"
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Estimadores por fase
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def estimate_fase0() -> Tuple[float, float, str, List[str]]:
     """Estimación para Fase 0: Setup y reproducibilidad."""
@@ -463,9 +463,9 @@ def estimate_fase5() -> Tuple[float, float, str, List[str]]:
     return min_sec, max_sec, format_duration_range(min_sec, max_sec), details
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Impresión estandarizada del encabezado de fase
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def print_phase_header(
     phase_title: str,

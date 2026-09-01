@@ -49,9 +49,9 @@ plt.style.use("seaborn-v0_8-whitegrid")
 sns.set_palette("husl")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Carga de datos
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def load_all_data():
     """Carga resultados de Fase 3 y análisis de Fase 4."""
@@ -77,9 +77,9 @@ def load_all_data():
     return df, fase4
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Tablas resumen
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def generate_model_summary_table(df: pd.DataFrame, metric: str = "F1-Score") -> pd.DataFrame:
     """Tabla resumen por modelo (§5.1 del protocolo)."""
@@ -130,9 +130,9 @@ def generate_distance_summary_table(df: pd.DataFrame, metric: str = "F1-Score") 
     return summary
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Figuras
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_heatmap(df: pd.DataFrame, metric: str = "F1-Score", fmt: str = "png"):
     """Heatmap dataset × modelo con la métrica de rendimiento."""
@@ -296,9 +296,9 @@ def plot_noise_analysis(df: pd.DataFrame, fmt: str = "png"):
     logger.info(f"Análisis de ruido guardado en {path}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Pipeline principal
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_fase5(metric: str = "F1-Score", fig_format: str = "png"):
     """Ejecuta la Fase 5 completa: generación de reporte."""
@@ -413,9 +413,9 @@ def run_fase5(metric: str = "F1-Score", fig_format: str = "png"):
     print("═" * 75 + "\n")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def main():
     parser = argparse.ArgumentParser(

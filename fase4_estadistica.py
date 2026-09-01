@@ -38,9 +38,9 @@ from time_estimator import estimate_fase4, print_phase_header
 logger = setup_logging("fase4")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Carga y preparación de datos
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def load_fase3_results() -> pd.DataFrame:
     """Carga todos los resultados JSON de la Fase 3 en un DataFrame."""
@@ -97,9 +97,9 @@ def build_performance_matrix(
     return matrix
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Tests estadísticos
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def friedman_test(matrix: pd.DataFrame) -> Dict[str, Any]:
     """Test de Friedman sobre la matriz de rendimiento.
@@ -250,9 +250,9 @@ def cd_diagram_data(
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Correlación interna vs externa (PI4)
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def correlation_internal_external(
     df: pd.DataFrame,
@@ -305,9 +305,9 @@ def correlation_internal_external(
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Pipeline principal
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_fase4(
     metric: str = "F1-Score",
@@ -465,9 +465,9 @@ def run_fase4(
     print("═" * 75 + "\n")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def main():
     parser = argparse.ArgumentParser(

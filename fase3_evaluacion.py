@@ -64,9 +64,9 @@ from miclustering.distances.distance_matrix import compute_distance_matrix
 logger = setup_logging("fase3")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Carga de mejores configuraciones de la Fase 2
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def load_best_config(dataset_name: str, model_name: str) -> Dict[str, Any]:
     """Carga la mejor configuración del estudio Optuna de la Fase 2.
@@ -108,9 +108,9 @@ def load_best_config(dataset_name: str, model_name: str) -> Dict[str, Any]:
     return config
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Instanciación de modelos
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def instantiate_model(model_name: str, params: Dict[str, Any], metric: str, seed: int):
     """Instancia un modelo de MIClustering con los hiperparámetros dados."""
@@ -159,9 +159,9 @@ def instantiate_model(model_name: str, params: Dict[str, Any], metric: str, seed
         raise ValueError(f"Modelo desconocido: {model_name}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Evaluación no supervisada (transductiva)
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def evaluate_unsupervised_replica(
     dataset_name: str,
@@ -190,7 +190,10 @@ def evaluate_unsupervised_replica(
     # Instanciar y ejecutar modelo
     t0 = time.perf_counter()
     model = instantiate_model(model_name, model_params, metric=distance_name, seed=seed)
-    model.fit(scaled_dataset)
+    if model_name in ("midbscan", "cosmic", "mikmedoids"):
+        model.fit(scaled_dataset, precomputed_matrix=dist_matrix)
+    else:
+        model.fit(scaled_dataset)
     fit_time = time.perf_counter() - t0
 
     labels = model.labels
@@ -230,9 +233,9 @@ def evaluate_unsupervised_replica(
     return result
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Evaluación supervisada (MIKNN con CV estratificada)
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def evaluate_supervised_replica(
     dataset_name: str,
@@ -333,9 +336,9 @@ def evaluate_supervised_replica(
     return result
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Pipeline principal
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_fase3(
     dataset_names: Optional[List[str]] = None,
@@ -498,9 +501,9 @@ def run_fase3(
     print("═" * 75 + "\n")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def main():
     parser = argparse.ArgumentParser(

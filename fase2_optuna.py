@@ -73,9 +73,9 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Funciones auxiliares
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def load_distance_matrix(dataset_name: str, scaler_name: str, distance_name: str) -> np.ndarray:
     """Carga una matriz de distancias precomputada de la Fase 1."""
@@ -110,7 +110,7 @@ def get_distance_percentiles(dataset_name: str, scaler_name: str, distance_name:
     return percentiles
 
 
-def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
+def instantiate_model(model_name: str, params: Dict[str, Any], metric: str = "hausdorff", seed: int = 42):
     """Instancia un modelo de MIClustering con los hiperparámetros dados."""
     from miclustering.models.midbscan import MIDBSCAN
     from miclustering.models.cosmic import COSMIC
@@ -122,7 +122,7 @@ def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
         return MIDBSCAN(
             epsilon=params["epsilon"],
             min_pts=params["min_pts"],
-            metric="hausdorff_avg",  # placeholder, se usa precomputed
+            metric=metric,
             n_jobs=1,
             device="cpu",
         )
@@ -132,7 +132,7 @@ def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
             epsilon=params["epsilon"],
             min_pts=params["min_pts"],
             epsilon_prime=params.get("epsilon_prime"),
-            metric="hausdorff_avg",
+            metric=metric,
             n_jobs=1,
             device="cpu",
         )
@@ -140,7 +140,7 @@ def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
     elif model_name == "mikmeans":
         return MIKMeans(
             k=params["k"],
-            metric="hausdorff_avg",
+            metric=metric,
             random_state=seed,
             n_jobs=1,
             device="cpu",
@@ -149,7 +149,7 @@ def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
     elif model_name == "mikmedoids":
         return MIKMedoids(
             k=params["k"],
-            metric="hausdorff_avg",
+            metric=metric,
             random_state=seed,
             n_jobs=1,
             device="cpu",
@@ -158,7 +158,7 @@ def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
     elif model_name == "miknn":
         return MIKnn(
             k=params["k"],
-            metric="hausdorff_avg",
+            metric=metric,
             n_jobs=1,
             device="cpu",
         )
@@ -168,14 +168,15 @@ def instantiate_model(model_name: str, params: Dict[str, Any], seed: int):
 
 
 def fit_unsupervised_with_precomputed(model, dataset: MIData, dist_matrix: np.ndarray) -> Dict[str, int]:
-    """Ejecuta un modelo no supervisado en modo transductivo y devuelve labels.
+    """Ejecuta un modelo no supervisado usando la matriz precomputada (Fase 1) si es soportada."""
+    from miclustering.models.midbscan import MIDBSCAN
+    from miclustering.models.cosmic import COSMIC
+    from miclustering.models.mikmedoids import MIKMedoids
 
-    Nota: Los modelos de MIClustering actualmente computan su propia matriz
-    interna. Para usar la precomputada, le pasamos el dataset y la matriz
-    se recoge del atributo _distance_matrix tras el fit. En el futuro se
-    puede optimizar pasando la matriz directamente.
-    """
-    model.fit(dataset)
+    if isinstance(model, (MIDBSCAN, COSMIC, MIKMedoids)):
+        model.fit(dataset, precomputed_matrix=dist_matrix)
+    else:
+        model.fit(dataset)
     return model.labels
 
 
@@ -218,9 +219,9 @@ def evaluate_unsupervised_silhouette(
         return -1.0
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Función objetivo por tipo de modelo
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def create_unsupervised_objective(
     model_name: str,
@@ -267,9 +268,8 @@ def create_unsupervised_objective(
 
         for sub_seed in sub_seeds:
             try:
-                model = instantiate_model(model_name, model_params, seed=sub_seed)
-                model.fit(scaled_dataset)
-                labels = model.labels
+                model = instantiate_model(model_name, model_params, metric=distance_name, seed=sub_seed)
+                labels = fit_unsupervised_with_precomputed(model, scaled_dataset, dist_matrix)
                 bag_ids_current = [bag.bag_id for bag in scaled_dataset.bags]
 
                 score = evaluate_unsupervised_silhouette(
@@ -342,7 +342,7 @@ def create_supervised_objective(
             test_data = MIData(test_bags, f"{dataset_name}_test")
 
             try:
-                model = instantiate_model(model_name, model_params, seed=MASTER_SEED)
+                model = instantiate_model(model_name, model_params, metric=distance_name, seed=MASTER_SEED)
                 model.fit(train_data)
                 preds = model.predict(test_data)
 
@@ -360,9 +360,9 @@ def create_supervised_objective(
     return objective
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Pipeline principal
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_single_study(
     dataset_name: str,
@@ -428,8 +428,13 @@ def run_single_study(
                 model_name, dataset_name, dataset, n_bags
             )
 
-        # Ejecutar optimización
-        study.optimize(objective, n_trials=remaining, show_progress_bar=False)
+        # Ejecutar optimización con blindaje ante trials fallidos
+        study.optimize(
+            objective,
+            n_trials=remaining,
+            catch=(Exception,),
+            show_progress_bar=False,
+        )
 
     # Exportar trials individuales a CSV
     trials_df = study.trials_dataframe()
@@ -586,9 +591,9 @@ def run_fase2(
     print("═" * 75 + "\n")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def main():
     parser = argparse.ArgumentParser(

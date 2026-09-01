@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Rutas del proyecto
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 # Raíz del proyecto (MI-DBSCAN/) y del paquete de experimentos
 EXP_DIR = Path(__file__).resolve().parent
@@ -50,9 +50,9 @@ ALL_RESULT_DIRS = [
 ]
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Semillas y reproducibilidad
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 MASTER_SEED = 42
 
@@ -82,9 +82,9 @@ N_REPLICAS = 10
 REPLICA_SEEDS = derive_seeds(MASTER_SEED, N_REPLICAS)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Diseño factorial
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 # --- Datasets (10 archivos .arff) ---
 DATASETS: List[str] = [
@@ -164,9 +164,9 @@ UNSUPERVISED_MODELS = ["midbscan", "cosmic", "mikmeans", "mikmedoids"]
 SUPERVISED_MODELS = ["miknn"]
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Optuna — Configuración de la búsqueda de hiperparámetros
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 N_TRIALS_DEFAULT = 80       # Presupuesto idéntico para los 5 modelos (Fase 2, punto 3)
 OPTUNA_SAMPLER_SEED = 42    # Mismo sampler/seed para todos (fairness)
@@ -180,14 +180,14 @@ def get_hyperparameter_space(
 ) -> Dict[str, Any]:
     """Define el espacio de búsqueda de Optuna para cada modelo.
 
-    Los rangos se adaptan al dataset concreto usando n_bags y,
-    cuando están disponibles, los percentiles de la distribución de distancias.
+    Los rangos se adaptan al dataset concreto usando n_bags (derivado de analisis_datasets.py)
+    y los percentiles reales de la distribución de distancias.
 
     Args:
         model_name: Nombre del modelo ('midbscan', 'cosmic', etc.).
         trial: Objeto optuna.trial.Trial para suggest_*.
-        n_bags: Número de bolsas del dataset (para escalar k).
-        dist_percentiles: Dict con claves 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95'.
+        n_bags: Número de bolsas del dataset (para acotar k y min_pts).
+        dist_percentiles: Dict con percentiles ('p5', 'p10', 'p50', 'p60', etc.).
                          Si None, se usan rangos conservadores por defecto.
 
     Returns:
@@ -196,28 +196,44 @@ def get_hyperparameter_space(
     import math
 
     # Rango adaptativo de epsilon basado en percentiles de distancias
-    if dist_percentiles is not None:
-        eps_low  = dist_percentiles.get("p5",  0.1)
-        eps_high = dist_percentiles.get("p60", 10.0)
+    if dist_percentiles is not None and dist_percentiles:
+        raw_p5 = dist_percentiles.get("p5", 0.1)
+        raw_p60 = dist_percentiles.get("p60", 10.0)
+
+        # Si p5 es 0 (ej. bolsas con instancias idénticas), buscar el primer percentil positivo
+        if raw_p5 <= 0.0:
+            raw_p5 = dist_percentiles.get("p10", 0.0)
+        if raw_p5 <= 0.0:
+            raw_p5 = dist_percentiles.get("p25", 0.0)
+
+        # Asegurar suelo estrictamente positivo para log=True
+        eps_low = max(float(raw_p5), 1e-4)
+        eps_high = max(float(raw_p60), eps_low * 2.0, 0.01)
     else:
         eps_low, eps_high = 0.1, 20.0
 
-    # Rango de k basado en √n (regla empírica)
-    k_max = max(2, int(math.sqrt(n_bags)))
+    # Rango de k basado en √N (heurística de analisis_datasets.py) acotado por n_bags
+    k_max = max(2, min(int(math.sqrt(n_bags)), max(2, n_bags - 1)))
+    min_pts_max = min(15, max(2, n_bags - 1))
+    k_knn_max = min(15, max(1, n_bags - 2))
 
     if model_name == "midbscan":
         return {
             "epsilon": trial.suggest_float("epsilon", eps_low, eps_high, log=True),
-            "min_pts": trial.suggest_int("min_pts", 2, 15),
+            "min_pts": trial.suggest_int("min_pts", 2, min_pts_max),
         }
 
     elif model_name == "cosmic":
         epsilon = trial.suggest_float("epsilon", eps_low, eps_high, log=True)
         # epsilon_prime <= epsilon (Fase 2 del protocolo)
-        epsilon_prime = trial.suggest_float("epsilon_prime", eps_low, epsilon)
+        eps_prime_low = min(eps_low, epsilon * 0.95)
+        if eps_prime_low >= epsilon:
+            epsilon_prime = epsilon
+        else:
+            epsilon_prime = trial.suggest_float("epsilon_prime", eps_prime_low, epsilon)
         return {
             "epsilon": epsilon,
-            "min_pts": trial.suggest_int("min_pts", 2, 15),
+            "min_pts": trial.suggest_int("min_pts", 2, min_pts_max),
             "epsilon_prime": epsilon_prime,
         }
 
@@ -233,16 +249,16 @@ def get_hyperparameter_space(
 
     elif model_name == "miknn":
         return {
-            "k": trial.suggest_int("k", 1, 15),
+            "k": trial.suggest_int("k", 1, k_knn_max),
         }
 
     else:
         raise ValueError(f"Modelo desconocido: {model_name}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Utilidades de naming y persistencia
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 def distance_matrix_filename(dataset: str, scaler: str, distance: str) -> str:
     """Nombre canónico para una matriz de distancias cacheada (.npy)."""
@@ -275,9 +291,9 @@ def ensure_result_dirs():
         d.mkdir(parents=True, exist_ok=True)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+
 # Logging
-# ═══════════════════════════════════════════════════════════════════════════
+
 
 import logging
 
