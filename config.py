@@ -207,8 +207,8 @@ def get_hyperparameter_space(
             raw_p5 = dist_percentiles.get("p25", 0.0)
 
         # Asegurar suelo estrictamente positivo para log=True
-        eps_low = max(float(raw_p5), 1e-4)
-        eps_high = max(float(raw_p60), eps_low * 2.0, 0.01)
+        eps_low = max(raw_p5, 1e-4)
+        eps_high = max(raw_p60, eps_low * 2.0, 0.01)
     else:
         eps_low, eps_high = 0.1, 20.0
 
