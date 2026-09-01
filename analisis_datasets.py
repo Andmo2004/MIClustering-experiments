@@ -44,6 +44,7 @@ from config import (
     ensure_result_dirs,
     setup_logging,
 )
+from time_estimator import estimate_analisis_datasets, print_phase_header
 
 # Importaciones de MIClustering
 from miclustering.data.arff_reader import ArffToMIData
@@ -194,10 +195,21 @@ def run_analysis(
     # Crear directorio de salida
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Estimación de tiempo
+    _, _, time_str, details = estimate_analisis_datasets(
+        dataset_names=datasets,
+        include_distances=compute_distance_stats,
+        distance_names=distances,
+    )
+    print_phase_header(
+        phase_title="ANÁLISIS EXPLORATORIO DE DATASETS MIL",
+        estimated_time_str=time_str,
+        details=details,
+        logger=logger,
+    )
+
     # ─── 1. Análisis de estructura ─────────────────────────────────────
-    print("\n" + "═" * 75)
-    print("  ANÁLISIS DE ESTRUCTURA DE DATASETS MIL")
-    print("═" * 75)
+    print("  [1/2] Análisis de estructura de bolsas...")
 
     bag_stats: List[Dict] = []
     for ds_name in tqdm(datasets, desc="Analizando estructura"):
@@ -328,13 +340,16 @@ def run_analysis(
         for (ds, sc), group in df_dist.groupby(["dataset", "scaler"]):
             for _, row in group.iterrows():
                 if "p5" in row and "p60" in row and pd.notna(row.get("p5")):
+                    p5_val = float(row["p5"])
+                    p60_val = float(row["p60"]) if pd.notna(row.get("p60")) else (float(row["p50"]) if pd.notna(row.get("p50")) else 0.0)
+                    p50_val = float(row["p50"]) if pd.notna(row.get("p50")) else 0.0
                     summary_rows.append({
                         "dataset": ds,
                         "scaler": sc,
                         "distance": row["distance"],
-                        "epsilon_low (p5)": round(row["p5"], 4),
-                        "epsilon_high (p60)": round(row.get("p60", row.get("p50", 0)), 4),
-                        "epsilon_median (p50)": round(row["p50"], 4),
+                        "epsilon_low (p5)": round(p5_val, 4),
+                        "epsilon_high (p60)": round(p60_val, 4),
+                        "epsilon_median (p50)": round(p50_val, 4),
                     })
 
         if summary_rows:

@@ -40,6 +40,7 @@ from config import (
     ensure_result_dirs,
     setup_logging,
 )
+from time_estimator import estimate_fase0, print_phase_header
 
 logger = setup_logging("fase0")
 
@@ -191,9 +192,13 @@ def document_design() -> Dict:
 
 def run_fase0():
     """Ejecuta la Fase 0 completa."""
-    print("\n" + "═" * 75)
-    print("  FASE 0 — PREPARACIÓN Y CONTROL DE REPRODUCIBILIDAD")
-    print("═" * 75)
+    _, _, time_str, details = estimate_fase0()
+    print_phase_header(
+        phase_title="FASE 0 — PREPARACIÓN Y CONTROL DE REPRODUCIBILIDAD",
+        estimated_time_str=time_str,
+        details=details,
+        logger=logger,
+    )
 
     # 1. Crear directorios
     print("\n[1/4] Creando estructura de directorios...")

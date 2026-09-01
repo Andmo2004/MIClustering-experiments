@@ -40,6 +40,7 @@ from config import (
     ensure_result_dirs,
     setup_logging,
 )
+from time_estimator import estimate_fase5, print_phase_header
 
 logger = setup_logging("fase5")
 
@@ -168,7 +169,7 @@ def plot_boxplot_models(df: pd.DataFrame, metric: str = "F1-Score", fmt: str = "
     df_plot = df[["model", metric]].dropna()
     order = df_plot.groupby("model")[metric].median().sort_values(ascending=False).index
 
-    sns.boxplot(data=df_plot, x="model", y=metric, order=order, ax=cast(Any, ax), palette="Set2")
+    sns.boxplot(data=df_plot, x="model", y=metric, order=order, ax=cast(Any, ax), palette="Set2", hue="model", legend=False)
     sns.stripplot(
         data=df_plot, x="model", y=metric, order=order, ax=cast(Any, ax),
         color="black", alpha=0.3, size=3, jitter=True,
@@ -193,7 +194,7 @@ def plot_boxplot_distances(df: pd.DataFrame, metric: str = "F1-Score", fmt: str 
     df_plot = df[["distance", metric]].dropna()
     order = df_plot.groupby("distance")[metric].median().sort_values(ascending=False).index
 
-    sns.boxplot(data=df_plot, x="distance", y=metric, order=order, ax=cast(Any, ax), palette="Set3")
+    sns.boxplot(data=df_plot, x="distance", y=metric, order=order, ax=cast(Any, ax), palette="Set3", hue="distance", legend=False)
     ax.set_title(f"Distribución de {metric} por Métrica de Distancia", fontsize=14, pad=15)
     ax.set_xlabel("Distancia", fontsize=12)
     ax.set_ylabel(metric, fontsize=12)
@@ -305,10 +306,15 @@ def run_fase5(metric: str = "F1-Score", fig_format: str = "png"):
     ensure_result_dirs()
     RESULTS_REPORTE.mkdir(parents=True, exist_ok=True)
 
-    print("\n" + "═" * 75)
-    print("  FASE 5 — SÍNTESIS Y REPORTE DE RESULTADOS")
-    print(f"  Métrica principal: {metric} | Formato figuras: {fig_format}")
-    print("═" * 75)
+    # Estimación de tiempo
+    _, _, time_str, details = estimate_fase5()
+    details_with_metric = [f"Métrica principal: {metric} | Formato figuras: {fig_format}"] + details
+    print_phase_header(
+        phase_title="FASE 5 — SÍNTESIS Y REPORTE DE RESULTADOS",
+        estimated_time_str=time_str,
+        details=details_with_metric,
+        logger=logger,
+    )
 
     # Cargar datos
     df, fase4_data = load_all_data()

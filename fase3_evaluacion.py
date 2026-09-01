@@ -53,6 +53,7 @@ from config import (
     setup_logging,
     derive_seeds,
 )
+from time_estimator import estimate_fase3, print_phase_header
 
 from miclustering.data.arff_reader import ArffToMIData
 from miclustering.data.midata import MIData
@@ -362,11 +363,20 @@ def run_fase3(
     ensure_result_dirs()
 
     total = len(datasets) * len(models) * n_replicas
-    print("\n" + "═" * 75)
-    print("  FASE 3 — EVALUACIÓN FINAL CON RÉPLICAS")
-    print(f"  {len(datasets)} datasets × {len(models)} modelos × {n_replicas} réplicas = {total} ejecuciones")
-    print(f"  Semillas: {seeds}")
-    print("═" * 75)
+
+    # Estimación de tiempo
+    _, _, time_str, details = estimate_fase3(
+        dataset_names=datasets,
+        model_names=models,
+        n_replicas=n_replicas,
+        force=force,
+    )
+    print_phase_header(
+        phase_title="FASE 3 — EVALUACIÓN FINAL CON RÉPLICAS",
+        estimated_time_str=time_str,
+        details=details,
+        logger=logger,
+    )
 
     all_results = []
     errors = []

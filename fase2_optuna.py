@@ -55,6 +55,7 @@ from config import (
     ensure_result_dirs,
     setup_logging,
 )
+from time_estimator import estimate_fase2, print_phase_header
 
 from miclustering.data.arff_reader import ArffToMIData
 from miclustering.data.midata import MIData
@@ -478,11 +479,20 @@ def run_fase2(
     ensure_result_dirs()
 
     total = len(datasets) * len(models)
-    print("\n" + "═" * 75)
-    print("  FASE 2 — OPTIMIZACIÓN DE HIPERPARÁMETROS (OPTUNA)")
-    print(f"  {len(datasets)} datasets × {len(models)} modelos = {total} estudios")
-    print(f"  Trials por estudio: {n_trials} | Sampler: TPE | Seed: {OPTUNA_SAMPLER_SEED}")
-    print("═" * 75)
+
+    # Estimación de tiempo
+    _, _, time_str, details = estimate_fase2(
+        dataset_names=datasets,
+        model_names=models,
+        n_trials=n_trials,
+        resume=resume,
+    )
+    print_phase_header(
+        phase_title="FASE 2 — OPTIMIZACIÓN DE HIPERPARÁMETROS (OPTUNA)",
+        estimated_time_str=time_str,
+        details=details,
+        logger=logger,
+    )
 
     all_results = []
     errors = []

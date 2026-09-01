@@ -33,6 +33,7 @@ from config import (
     ensure_result_dirs,
     setup_logging,
 )
+from time_estimator import estimate_fase4, print_phase_header
 
 logger = setup_logging("fase4")
 
@@ -269,6 +270,9 @@ def correlation_internal_external(
         return {"error": "Datos de Fase 2 no disponibles"}
 
     df_optuna = pd.read_csv(optuna_csv)
+    score_col = "best_score" if "best_score" in df_optuna.columns else ("best_value" if "best_value" in df_optuna.columns else None)
+    if score_col is None:
+        return {"error": "Columna de score no encontrada en datos de Fase 2"}
 
     # Merge con resultados de Fase 3
     if external_metric not in df.columns:
@@ -280,16 +284,16 @@ def correlation_internal_external(
 
     # Merge
     df_merged = pd.merge(
-        df_optuna[["dataset", "model", "best_value"]],
+        df_optuna[["dataset", "model", score_col]],
         df_ext,
         on=["dataset", "model"],
         how="inner",
     )
 
     if len(df_merged) < 3:
-        return {"error": "Datos insuficientes para correlación"}
+        return {"error": "Datos insuficientes para correlación (menos de 3 observaciones)"}
 
-    rho, p_value = stats.spearmanr(df_merged["best_value"], df_merged["external_score"])
+    rho, p_value = stats.spearmanr(df_merged[score_col], df_merged["external_score"])
 
     return {
         "test": "Spearman",
@@ -314,10 +318,15 @@ def run_fase4(
     ensure_result_dirs()
     RESULTS_ANALISIS_ESTADIST.mkdir(parents=True, exist_ok=True)
 
-    print("\n" + "═" * 75)
-    print("  FASE 4 — ANÁLISIS ESTADÍSTICO COMPARATIVO")
-    print(f"  Métrica principal: {metric} | α = {alpha}")
-    print("═" * 75)
+    # Estimación de tiempo
+    _, _, time_str, details = estimate_fase4()
+    details_with_metric = [f"Métrica principal: {metric} | Nivel de significancia: α = {alpha}"] + details
+    print_phase_header(
+        phase_title="FASE 4 — ANÁLISIS ESTADÍSTICO COMPARATIVO",
+        estimated_time_str=time_str,
+        details=details_with_metric,
+        logger=logger,
+    )
 
     # 1. Cargar datos
     print("\n[1/5] Cargando resultados de la Fase 3...")

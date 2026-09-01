@@ -40,6 +40,7 @@ from config import (
     ensure_result_dirs,
     setup_logging,
 )
+from time_estimator import estimate_fase1, print_phase_header
 
 from miclustering.data.arff_reader import ArffToMIData
 from miclustering.distances.distance_matrix import compute_distance_matrix
@@ -165,10 +166,20 @@ def run_fase1(
     ensure_result_dirs()
 
     total = len(datasets) * len(scaler_names) * len(distances)
-    print("\n" + "═" * 75)
-    print("  FASE 1 — PRECÓMPUTO DE MATRICES DE DISTANCIA")
-    print(f"  {len(datasets)} datasets × {len(scaler_names)} scalers × {len(distances)} distancias = {total} matrices")
-    print("═" * 75)
+
+    # Estimación de tiempo
+    _, _, time_str, details = estimate_fase1(
+        dataset_names=datasets,
+        distance_names=distances,
+        scaler_names=scaler_names,
+        force=force,
+    )
+    print_phase_header(
+        phase_title="FASE 1 — PRECÓMPUTO DE MATRICES DE DISTANCIA",
+        estimated_time_str=time_str,
+        details=details,
+        logger=logger,
+    )
 
     results = []
     errors = []
