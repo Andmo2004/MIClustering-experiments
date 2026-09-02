@@ -311,14 +311,18 @@ def estimate_fase1(
 def estimate_fase2(
     dataset_names: Optional[List[str]] = None,
     model_names: Optional[List[str]] = None,
-    n_trials: int = 80,
+    n_trials: Optional[int] = None,
     resume: bool = False,
 ) -> Tuple[float, float, str, List[str]]:
     """Estimación para Fase 2: Optimización de hiperparámetros con Optuna."""
     from config import (
         DATASETS, MODELS, UNSUPERVISED_MODELS, SUPERVISED_MODELS,
+        N_TRIALS_DEFAULT,
         RESULTS_DISTANCIAS, optuna_db_path, optuna_study_name,
     )
+
+    if n_trials is None:
+        n_trials = N_TRIALS_DEFAULT
 
     datasets = dataset_names or DATASETS
     models = model_names or MODELS

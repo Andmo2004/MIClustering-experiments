@@ -40,6 +40,7 @@ from config import (
     UNSUPERVISED_MODELS,
     SUPERVISED_MODELS,
     N_TRIALS_DEFAULT,
+    EARLY_STOPPING_DEFAULT,
     OPTUNA_SAMPLER_SEED,
     MASTER_SEED,
     RESULTS_ESTUDIOS_OPTUNA,
@@ -141,6 +142,8 @@ def instantiate_model(model_name: str, params: Dict[str, Any], metric: str = "ha
         return MIKMeans(
             k=params["k"],
             metric=metric,
+            max_iters=30,
+            tol=0.03,
             random_state=seed,
             n_jobs=1,
             device="cpu",
@@ -374,10 +377,53 @@ def create_supervised_objective(
 # Pipeline principal
 
 
+class EarlyStoppingCallback:
+    """Callback de Optuna para early stopping tras N trials consecutivos sin mejora."""
+
+    def __init__(self, patience: int = EARLY_STOPPING_DEFAULT):
+        self.patience = patience
+        self._best_value: Optional[float] = None
+        self._no_improvement_count: int = 0
+
+    def __call__(self, study: optuna.Study, trial: optuna.trial.FrozenTrial) -> None:
+        if self.patience <= 0:
+            return
+
+        # Inicializar el mejor valor histórico del estudio si aún no está fijado
+        if self._best_value is None:
+            completed_values = [
+                t.value
+                for t in study.trials
+                if t.state == optuna.trial.TrialState.COMPLETE and t.value is not None
+            ]
+            if completed_values:
+                self._best_value = max(completed_values)
+
+        # Si el trial actual completó exitosamente y supera el mejor valor histórico
+        if (
+            trial.state == optuna.trial.TrialState.COMPLETE
+            and trial.value is not None
+            and (self._best_value is None or trial.value > self._best_value)
+        ):
+            self._best_value = trial.value
+            self._no_improvement_count = 0
+        else:
+            self._no_improvement_count += 1
+
+        if self._no_improvement_count >= self.patience:
+            logger.info(
+                f"[{study.study_name}] Early stopping activado: {self._no_improvement_count} "
+                f"trials consecutivos sin mejora. Mejor score: {self._best_value:.4f} "
+                f"(detenido en trial #{trial.number})."
+            )
+            study.stop()
+
+
 def run_single_study(
     dataset_name: str,
     model_name: str,
     n_trials: int = N_TRIALS_DEFAULT,
+    early_stopping_patience: int = EARLY_STOPPING_DEFAULT,
     resume: bool = False,
 ) -> Dict[str, Any]:
     """Ejecuta un estudio Optuna para un par (dataset, modelo).
@@ -385,7 +431,8 @@ def run_single_study(
     Args:
         dataset_name: Nombre del dataset.
         model_name: Nombre del modelo.
-        n_trials: Número de trials.
+        n_trials: Número máximo de trials.
+        early_stopping_patience: Corta si transcurren N trials sin mejora (0 = desactiva).
         resume: Si True, continúa un estudio existente.
 
     Returns:
@@ -438,11 +485,17 @@ def run_single_study(
                 model_name, dataset_name, dataset, n_bags
             )
 
-        # Ejecutar optimización con blindaje ante trials fallidos
+        # Ejecutar optimización con blindaje ante trials fallidos y early stopping
+        callbacks = (
+            [EarlyStoppingCallback(patience=early_stopping_patience)]
+            if early_stopping_patience > 0
+            else None
+        )
         study.optimize(
             objective,
             n_trials=remaining,
             catch=(Exception,),
+            callbacks=callbacks,
             show_progress_bar=False,
         )
 
@@ -478,6 +531,7 @@ def run_fase2(
     dataset_names: Optional[List[str]] = None,
     model_names: Optional[List[str]] = None,
     n_trials: int = N_TRIALS_DEFAULT,
+    early_stopping_patience: int = EARLY_STOPPING_DEFAULT,
     resume: bool = False,
 ) -> None:
     """Ejecuta la Fase 2 completa: optimización de hiperparámetros.
@@ -485,7 +539,8 @@ def run_fase2(
     Args:
         dataset_names: Datasets a procesar (None = todos).
         model_names: Modelos a optimizar (None = todos).
-        n_trials: Número de trials por estudio.
+        n_trials: Número máximo de trials por estudio.
+        early_stopping_patience: Corta si transcurren N trials sin mejora.
         resume: Si True, continúa estudios existentes.
     """
     datasets = dataset_names or DATASETS
@@ -521,6 +576,7 @@ def run_fase2(
                     result = run_single_study(
                         ds_name, model_name,
                         n_trials=n_trials,
+                        early_stopping_patience=early_stopping_patience,
                         resume=resume,
                     )
                     all_results.append(result)
@@ -619,7 +675,11 @@ def main():
     )
     parser.add_argument(
         "--n-trials", type=int, default=N_TRIALS_DEFAULT,
-        help=f"Número de trials por estudio (default: {N_TRIALS_DEFAULT}).",
+        help=f"Número máximo de trials por estudio (default: {N_TRIALS_DEFAULT}).",
+    )
+    parser.add_argument(
+        "--early-stopping", type=int, default=EARLY_STOPPING_DEFAULT,
+        help=f"Paciencia de early stopping: corta tras N trials sin mejora (default: {EARLY_STOPPING_DEFAULT}, 0 para desactivar).",
     )
     parser.add_argument(
         "--resume", action="store_true",
@@ -632,6 +692,7 @@ def main():
         dataset_names=args.datasets,
         model_names=args.models,
         n_trials=args.n_trials,
+        early_stopping_patience=args.early_stopping,
         resume=args.resume,
     )
 

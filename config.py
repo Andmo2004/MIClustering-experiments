@@ -168,7 +168,8 @@ SUPERVISED_MODELS = ["miknn"]
 # Optuna — Configuración de la búsqueda de hiperparámetros
 
 
-N_TRIALS_DEFAULT = 80       # Presupuesto idéntico para los 5 modelos (Fase 2, punto 3)
+N_TRIALS_DEFAULT = 250       # Presupuesto máximo por estudio (Fase 2)
+EARLY_STOPPING_DEFAULT = 50  # Parar si pasan 50 trials consecutivos sin mejora
 OPTUNA_SAMPLER_SEED = 42    # Mismo sampler/seed para todos (fairness)
 
 
