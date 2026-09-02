@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, KFold
 
 from config import (
     DATASETS,
@@ -268,15 +268,24 @@ def evaluate_supervised_replica(
 
     # CV estratificada (la semilla controla el shuffle de folds)
     min_class_count = int(np.bincount(labels.astype(int)).min())
-    n_folds = max(2, min(5, min_class_count))
-
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
+    bag_ids_list: List[str] = [bag.bag_id for bag in bags]
+    if min_class_count >= 2:
+        n_folds = min(5, min_class_count)
+        splitter = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
+        splits = list(splitter.split(bag_ids_list, labels))
+    else:
+        logger.warning(
+            f"[{dataset_name}] min_class_count={min_class_count} < 2. "
+            "Usando KFold no estratificado como fallback para CV (la clase minoritaria puede no estar presente en todos los folds)."
+        )
+        n_folds = max(2, min(5, len(labels)))
+        splitter = KFold(n_splits=n_folds, shuffle=True, random_state=seed)
+        splits = list(splitter.split(bag_ids_list))
 
     fold_metrics = []
     total_time = 0.0
 
-    bag_ids_list: List[str] = [bag.bag_id for bag in bags]
-    for fold_idx, (train_idx, test_idx) in enumerate(skf.split(bag_ids_list, labels)):
+    for fold_idx, (train_idx, test_idx) in enumerate(splits):
         train_bags = [bags[i] for i in train_idx]
         test_bags = [bags[i] for i in test_idx]
 

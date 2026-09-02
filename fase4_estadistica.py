@@ -208,7 +208,7 @@ def wilcoxon_posthoc(
                 p_values[i, j] = 1.0
                 p_values[j, i] = 1.0
 
-    # Corrección de Holm
+    # Corrección de Holm (garantizando monotonicidad en p-valores ajustados)
     pairs = []
     for i in range(n_models):
         for j in range(i + 1, n_models):
@@ -216,8 +216,11 @@ def wilcoxon_posthoc(
     pairs.sort(key=lambda x: x[2])
 
     m = len(pairs)
+    running_max = 0.0
     for rank, (i, j, p) in enumerate(pairs):
         corrected_p = min(p * (m - rank), 1.0)
+        corrected_p = max(corrected_p, running_max)
+        running_max = corrected_p
         p_values[i, j] = corrected_p
         p_values[j, i] = corrected_p
 
@@ -239,18 +242,52 @@ def cd_diagram_data(
     k = data.shape[1]  # tratamientos
     N = data.shape[0]  # bloques
 
+    if k < 2 or N < 1:
+        return {
+            "mean_ranks": {},
+            "critical_difference": 0.0,
+            "alpha": alpha,
+            "k": k,
+            "N": N,
+            "q_alpha": 0.0,
+        }
+
     # Rankings
     rankings = data.rank(axis=1, ascending=False, method="average")
     mean_ranks = rankings.mean().sort_values()
 
-    # Valores críticos de Nemenyi (q_alpha para alpha=0.05)
-    # Tabla para k=2..10 (aproximación)
-    q_table = {
-        2: 1.960, 3: 2.343, 4: 2.569, 5: 2.728,
-        6: 2.850, 7: 2.949, 8: 3.031, 9: 3.102, 10: 3.164,
-    }
+    # Valores críticos de Nemenyi (q_alpha)
+    # 1. Cálculo analítico exacto mediante rango estudentizado:
+    #    q_alpha = q_tukey(1-alpha, k, inf) / sqrt(2)
+    q_alpha = None
+    try:
+        if hasattr(stats, "studentized_range"):
+            val = stats.studentized_range.ppf(1.0 - alpha, k, float("inf")) / np.sqrt(2.0)
+            if np.isfinite(val) and val > 0:
+                q_alpha = float(val)
+    except Exception as e:
+        logger.debug(f"Cálculo analítico studentized_range falló: {e}")
 
-    q_alpha = q_table.get(k, 2.728)  # Default a k=5
+    # 2. Fallback a tablas tabuladas por Demšar (2006) para alpha in [0.01, 0.05, 0.10]
+    if q_alpha is None:
+        q_tables = {
+            0.10: {
+                2: 1.645, 3: 2.052, 4: 2.291, 5: 2.459,
+                6: 2.589, 7: 2.693, 8: 2.780, 9: 2.855, 10: 2.920,
+            },
+            0.05: {
+                2: 1.960, 3: 2.343, 4: 2.569, 5: 2.728,
+                6: 2.850, 7: 2.949, 8: 3.031, 9: 3.102, 10: 3.164,
+            },
+            0.01: {
+                2: 2.576, 3: 2.913, 4: 3.113, 5: 3.255,
+                6: 3.364, 7: 3.452, 8: 3.526, 9: 3.590, 10: 3.645,
+            },
+        }
+        closest_alpha = min(q_tables.keys(), key=lambda a: abs(a - alpha))
+        q_table = q_tables[closest_alpha]
+        q_alpha = q_table.get(k, q_table.get(5, 2.728))
+
     cd = q_alpha * np.sqrt(k * (k + 1) / (6.0 * N))
 
     return {

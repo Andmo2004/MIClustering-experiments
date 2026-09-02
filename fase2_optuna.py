@@ -64,7 +64,7 @@ from miclustering.distances.distance_matrix import compute_distance_matrix
 
 # Silhouette precomputed de sklearn (la implementación propia se añadirá después)
 from sklearn.metrics import silhouette_score, f1_score
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, KFold
 
 logger = setup_logging("fase2")
 
@@ -328,13 +328,23 @@ def create_supervised_objective(
         labels = np.array(labels)
 
         min_class_count = int(np.bincount(labels.astype(int)).min())
-        n_folds = max(2, min(5, min_class_count))
+        bag_ids_list: List[str] = [bag.bag_id for bag in bags]
+        if min_class_count >= 2:
+            n_folds = min(5, min_class_count)
+            splitter = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=MASTER_SEED)
+            splits = list(splitter.split(bag_ids_list, labels))
+        else:
+            logger.warning(
+                f"[{dataset_name}] min_class_count={min_class_count} < 2. "
+                "Usando KFold no estratificado como fallback para CV (la clase minoritaria puede no estar presente en todos los folds)."
+            )
+            n_folds = max(2, min(5, len(labels)))
+            splitter = KFold(n_splits=n_folds, shuffle=True, random_state=MASTER_SEED)
+            splits = list(splitter.split(bag_ids_list))
 
-        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=MASTER_SEED)
         fold_scores = []
 
-        bag_ids_list: List[str] = [bag.bag_id for bag in bags]
-        for train_idx, test_idx in skf.split(bag_ids_list, labels):
+        for train_idx, test_idx in splits:
             train_bags = [bags[i] for i in train_idx]
             test_bags = [bags[i] for i in test_idx]
 
