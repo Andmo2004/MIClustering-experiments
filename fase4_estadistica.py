@@ -117,8 +117,21 @@ def friedman_test(matrix: pd.DataFrame) -> Dict[str, Any]:
     data = matrix.dropna()
 
     if data.shape[0] < 3:
-        logger.warning("Menos de 3 datasets con datos completos para Friedman.")
-        return {"error": "Datos insuficientes para Friedman"}
+        missing_models = matrix.isna().sum().to_dict()
+        incomplete_datasets = matrix[matrix.isna().any(axis=1)].index.tolist()
+        logger.warning(
+            f"Menos de 3 datasets con datos completos para Friedman "
+            f"({data.shape[0]}/{matrix.shape[0]} datasets completos). "
+            f"Datasets incompletos: {incomplete_datasets}. "
+            f"Valores faltantes por modelo: {missing_models}."
+        )
+        return {
+            "error": "Datos insuficientes para Friedman",
+            "n_complete_datasets": data.shape[0],
+            "total_datasets_in_matrix": matrix.shape[0],
+            "incomplete_datasets": incomplete_datasets,
+            "missing_by_model": missing_models,
+        }
 
     groups = [data[col].values for col in data.columns]
     stat, p_value = stats.friedmanchisquare(*groups)

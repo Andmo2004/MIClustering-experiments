@@ -197,18 +197,27 @@ def get_hyperparameter_space(
 
     # Rango adaptativo de epsilon basado en percentiles de distancias
     if dist_percentiles is not None and dist_percentiles:
-        raw_p5 = dist_percentiles.get("p5", 0.1)
-        raw_p60 = dist_percentiles.get("p60", 10.0)
+        raw_p5 = dist_percentiles.get("p5", 0.0)
+        raw_p60 = dist_percentiles.get("p60", 0.0)
 
-        # Si p5 es 0 (ej. bolsas con instancias idénticas), buscar el primer percentil positivo
+        # Si p5 es 0 o no válido, buscar percentiles superiores
         if raw_p5 <= 0.0:
             raw_p5 = dist_percentiles.get("p10", 0.0)
         if raw_p5 <= 0.0:
             raw_p5 = dist_percentiles.get("p25", 0.0)
+        if raw_p5 <= 0.0:
+            raw_p5 = dist_percentiles.get("p50", 0.1)
 
-        # Asegurar suelo estrictamente positivo para log=True
+        if raw_p60 <= raw_p5:
+            raw_p60 = dist_percentiles.get("p75", 0.0)
+        if raw_p60 <= raw_p5:
+            raw_p60 = dist_percentiles.get("p90", 0.0)
+        if raw_p60 <= raw_p5:
+            raw_p60 = max(raw_p5 * 2.0, 1.0)
+
+        # Asegurar suelo estrictamente positivo para log=True y eps_high > eps_low
         eps_low = max(raw_p5, 1e-4)
-        eps_high = max(raw_p60, eps_low * 2.0, 0.01)
+        eps_high = max(raw_p60, eps_low * 1.5, 0.01)
     else:
         eps_low, eps_high = 0.1, 20.0
 
